@@ -19,15 +19,17 @@
 var express = require("express");
 var app = express();
 var port = 8080;
-// var bodyParser = require("body-parser");
+var bodyParser = require("body-parser");
 var cors   = require("cors");
+var myFunc = require('./functions/getData');
 
 app.use(cors());
-
+// app.use(bodyParser.urlencoded());
+app.use(bodyParser.json());
 
 app.get("/",(req,res)=>{
     res.send("Hello World!")
-})
+});
 
 app.get("/posts",(req,res)=>{
 
@@ -45,6 +47,8 @@ app.get("/posts",(req,res)=>{
     // res.send(`POSTS API ${req.param('name')}`)
 })
 
+
+
 app.get("/messages",(req,res)=>{
     res.send("Messages API" + req.ip)
 })
@@ -53,9 +57,24 @@ app.get("/comments",(req,res)=>{
     res.send("Comments API" + req.baseUrl)
 })
 
-// app.post("/users",(req,res)=>{
-//     res.send("Users API")
-// })
+
+// www.mydomain.com/messages/search?id=12   | query string   of type get
+app.get("/users",(req,res)=>{
+    res.send("GET Users API")
+})
+
+// post has a data of body type which is not of type query | url and payload(data)
+// Content-Type: application/x-www-form-urlencoded   == if we send data via form action or we specify content type : bodyparser.urlencoded()  in app.use()
+app.post("/users",(req,res)=>{
+    // console.log("Req Body ",req.body.username);
+    var username = req.body.username;
+    var dataResponse = myFunc.getData(username);
+    res.send(dataResponse);
+    // res.send(`POST Users API ${postFirstName} `);
+})
+
+
+
 
 
 
