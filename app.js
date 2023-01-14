@@ -16,68 +16,51 @@
 //authorization & server side rendering  || functions  \\
 
 
+require("dotenv").config();
+require('./config/database').connect();
+// var connect = require('./config/database');
+// connect();
 var express = require("express");
 var app = express();
 var port = 8080;
 var bodyParser = require("body-parser");
 var cors   = require("cors");
-var myFunc = require('./functions/getData');
+var router = require('./routing/routing')
 
 app.use(cors());
 // app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
-
-app.get("/",(req,res)=>{
-    res.send("Hello World!")
-});
-
-app.get("/posts",(req,res)=>{
-
-    response = {
-        data : [
-            { id : 1 , name : "ABC" , post : "Hello how are you" },
-            { id : 2 , name : "DEF" , post : "Hello how are you" },
-            { id : 3 , name : "GHI" , post : "Hello how are you" },
-            { id : 4 , name : "JKL" , post : "Hello how are you" },
-        ]
-    }
-
-    res.send(JSON.stringify(response));
-    
-    // res.send(`POSTS API ${req.param('name')}`)
-})
-
-
-
-app.get("/messages",(req,res)=>{
-    res.send("Messages API" + req.ip)
-})
-
-app.get("/comments",(req,res)=>{
-    res.send("Comments API" + req.baseUrl)
-})
-
-
-// www.mydomain.com/messages/search?id=12   | query string   of type get
-app.get("/users",(req,res)=>{
-    res.send("GET Users API")
-})
-
-// post has a data of body type which is not of type query | url and payload(data)
-// Content-Type: application/x-www-form-urlencoded   == if we send data via form action or we specify content type : bodyparser.urlencoded()  in app.use()
-app.post("/users",(req,res)=>{
-    // console.log("Req Body ",req.body.username);
-    var username = req.body.username;
-    var dataResponse = myFunc.getData(username);
-    res.send(dataResponse);
-    // res.send(`POST Users API ${postFirstName} `);
-})
-
-
-
-
-
+app.use(router);
 
 app.listen(port,()=>{
     console.log(`App is running at Port ${port}`);
 })
+
+
+//user --- spedcific to users only 
+//admin --- on admin related api's and function
+//common  
+
+//model
+//  user = {
+//     int id;
+//     char name[];
+//     string address;
+//     string gender
+// }
+
+
+// req.body  == { name :  "", age : xx , gender : "" }
+// let userData = req.body:USER 
+// models  USER : { name : type, age: type, gender : type}
+
+//sql  structured query language (mysql | sql | postgres) INSERT into table (columns) VALUES (ABC); RDMS  -- RDMS -- primary foreign keys data int the form of tables rows and columns
+//no sql -- non structured query language | their is no RDBMS , no tables, data is in the JSON format  || mongodb | couchdb 
+
+
+//App - Login - Register - Homepage
+//JWT | JSON Web Tokens (jwt.io)  || only for providing a secure token to verify user
+//Password -- encrypted in db (bcrypt.js)
+//mongo db is a database (no-sql)
+//mongoose client (lib) in nodejs to connect to mongodb   
+// npm i mongoose jsonwebtoken dotenv bcryptjs
