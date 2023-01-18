@@ -1,6 +1,7 @@
 const express =  require('express');
 const router = express.Router();
 var myFunc = require('../functions/getData');
+var Posts = require("../models/posts");
 
 router.get("/",(req,res)=>{
     res.send("Hello World!")
@@ -43,5 +44,16 @@ router.post("/users",(req,res)=>{
     res.send(dataResponse);
     // res.send(`POST Users API ${postFirstName} `);
 })
+
+router.get("/getPosts",(req,res)=>{
+    res.send("Hello i'm in getPosts");
+    Posts.find({"_id" : ObjectId("63c2a04a56f18b5dfc295676")},(err,posts)=>{
+        // if(err){
+        //     res.send("error");
+        // }
+        // res.send(posts);        
+    });
+
+});
 
 module.exports = router;
