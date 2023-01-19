@@ -1,6 +1,7 @@
 const express =  require('express');
 const router = express.Router();
 var myFunc = require('../functions/getData');
+const posts = require('../models/posts');
 var Posts = require("../models/posts");
 
 router.get("/",(req,res)=>{
@@ -45,15 +46,37 @@ router.post("/users",(req,res)=>{
     // res.send(`POST Users API ${postFirstName} `);
 })
 
-router.get("/getPosts",(req,res)=>{
-    res.send("Hello i'm in getPosts");
-    Posts.find({"_id" : ObjectId("63c2a04a56f18b5dfc295676")},(err,posts)=>{
-        // if(err){
-        //     res.send("error");
-        // }
-        // res.send(posts);        
+router.get("/getPosts",async (req,res)=>{
+    // res.send("Hello i'm in getPosts");
+    Posts.find({},(err,posts)=>{
+        if(err){
+            res.send("error");
+        }
+        res.json(posts);        
     });
 
 });
+
+
+router.get("/createUser",(req,res)=>{
+    const newPost = new Posts();
+    newPost.title = "Hello this is a new Title from VS Code";
+    newPost.desc = "Hello we are writing a new post description and saving this post from vs code via mongoose schema in mongodb";
+    newPost.save((err,post)=>{
+        if(err){
+            res.send("some error");
+        }
+        else{
+            if(post._id){
+                res.send("Post Created Successfully")
+            }
+            else{
+                res.send("some error in creating this post");
+            }
+            // res.json(post);
+        }
+    })
+
+})
 
 module.exports = router;
