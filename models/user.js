@@ -18,6 +18,6 @@ const UserSchema = new mongoose.Schema({
 
 module.exports = mongoose.model("User",UserSchema);
 
+//find schema unique key to store unique values in collection
 //create user registrations and check for user login and redirect them on home page
 // before save you have to check for user existance
-//find schema unique key to store unique values in collection
