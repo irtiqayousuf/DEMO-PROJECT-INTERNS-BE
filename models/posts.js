@@ -9,6 +9,6 @@ const PostsSchema = new mongoose.Schema({
         type: String,
         required : true
     }
-},{strictQuery : false});
+},{collection:"posts"});
 
 module.exports = mongoose.model("Posts",PostsSchema);

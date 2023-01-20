@@ -3,6 +3,8 @@ const router = express.Router();
 var myFunc = require('../functions/getData');
 const posts = require('../models/posts');
 var Posts = require("../models/posts");
+var User = require("../models/user");
+// import User from "../models/user";
 
 router.get("/",(req,res)=>{
     res.send("Hello World!")
@@ -58,7 +60,7 @@ router.get("/getPosts",async (req,res)=>{
 });
 
 
-router.get("/createUser",(req,res)=>{
+router.get("/createPost",(req,res)=>{
     const newPost = new Posts();
     newPost.title = "Hello this is a new Title from VS Code";
     newPost.desc = "Hello we are writing a new post description and saving this post from vs code via mongoose schema in mongodb";
@@ -76,6 +78,20 @@ router.get("/createUser",(req,res)=>{
             // res.json(post);
         }
     })
+
+})
+
+
+router.post("/createUser",(req,res)=>{
+    const { name, email, password } = req.body;
+    User.create({name , email, password},(error, user) => {
+        if(error){
+            res.send("Cannot create user");
+        }
+        else{
+            res.json(user);
+        }
+    });
 
 })
 
