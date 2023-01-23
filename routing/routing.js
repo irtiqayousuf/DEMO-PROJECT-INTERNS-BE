@@ -5,6 +5,8 @@ const posts = require('../models/posts');
 var Posts = require("../models/posts");
 var User = require("../models/user");
 // import User from "../models/user";
+var bcrypt = require("bcryptjs");
+const salt = 10;
 
 router.get("/",(req,res)=>{
     res.send("Hello World!")
@@ -84,7 +86,11 @@ router.get("/createPost",(req,res)=>{
 
 router.post("/createUser",(req,res)=>{
     const { name, email, password } = req.body;
-    User.create({name , email, password},(error, user) => {
+    console.log("Plain Password " ,password);
+    let enPass =  bcrypt.hashSync(password,salt);
+    console.log("Enc Password " ,enPass);
+
+    User.create({name , email, password : enPass},(error, user) => {
         if(error){
             res.send("Cannot create user");
         }
@@ -92,7 +98,44 @@ router.post("/createUser",(req,res)=>{
             res.json(user);
         }
     });
+});
 
-})
+
+router.post("/loginUser", (req,res)=>{
+    let responseObj = { data : "", message : "", status : "", error : "" };
+    const { email, password } = req.body;
+    User.findOne({email},(error, user) => {
+        if(error){
+            responseObj.message = "Something went wrong";
+            responseObj.status = 400;
+            responseObj.error = true;
+            res.json(responseObj);
+        }
+        else if(user){
+            if(bcrypt.compareSync(password,user.password)){
+                responseObj.data = user;
+                responseObj.status = 200;
+                responseObj.error = false;
+                res.json(responseObj);
+            }
+            else{
+                responseObj.message = "Invalid Password";
+                responseObj.status = 200;
+                responseObj.error = false;
+                res.json(responseObj);
+            }
+        }
+        else{
+            responseObj.message = "Invalid Username/Password";
+            responseObj.status = 200;
+            responseObj.error = true;
+            res.json(responseObj);
+        }
+    });
+});
 
 module.exports = router;
+
+
+//sessions, cookies, localStorage  ||  
+//
