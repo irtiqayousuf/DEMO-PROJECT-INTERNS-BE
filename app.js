@@ -22,10 +22,12 @@ require('./config/database').connect();
 // connect();
 var express = require("express");
 var app = express();
-var port = 8080;
 var bodyParser = require("body-parser");
 var cors   = require("cors");
 var router = require('./routing/routing')
+var dotenv = require("dotenv");
+dotenv.config();
+var port = process.env.PORT || 8080;
 
 app.use(cors());
 // app.use(bodyParser.urlencoded());
@@ -64,3 +66,19 @@ app.listen(port,()=>{
 //mongo db is a database (no-sql)
 //mongoose client (lib) in nodejs to connect to mongodb   
 // npm i mongoose jsonwebtoken dotenv bcryptjs
+
+
+//environments : 1. localhost | Dev, 2. QA - Quality Assurance -Testing  ,3. UAT - Porduct Owner ,  4. Prod -- Live
+
+//CI/CD   : continuous integration/ continuous development
+
+// jwt // dotenv // authorization header
+
+
+// task :  login and protected routes/ authorization in reactjs
+
+//Pending things
+// nodejs: controllers
+// reactjs: routes -> protected routes | project setup
+// react js / nodejs / mongodb 
+// documentation of our project and project setup | 30th Project start date | E-Authorization System

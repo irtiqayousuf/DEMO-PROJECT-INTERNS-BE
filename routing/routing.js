@@ -7,6 +7,8 @@ var User = require("../models/user");
 // import User from "../models/user";
 var bcrypt = require("bcryptjs");
 const salt = 10;
+let jwt_key = process.env.JWT_TOKEN_KEY;
+var jwt = require("jsonwebtoken");
 
 router.get("/",(req,res)=>{
     res.send("Hello World!")
@@ -52,12 +54,23 @@ router.post("/users",(req,res)=>{
 
 router.get("/getPosts",async (req,res)=>{
     // res.send("Hello i'm in getPosts");
-    Posts.find({},(err,posts)=>{
-        if(err){
-            res.send("error");
-        }
-        res.json(posts);        
-    });
+    let token = req.param("token");
+    if(!token){
+        res.send("Token not found");
+    }
+    let val = validateToken(token);
+    console.log("Val ",val);
+    if(val === 401){
+        res.status(401).send("Access Token is not valid");
+    }
+    else{
+        Posts.find({},(err,posts)=>{
+            if(err){
+                res.send("error");
+            }
+            res.json(posts);        
+        });
+    }
 
 });
 
@@ -102,6 +115,8 @@ router.post("/createUser",(req,res)=>{
 
 
 router.post("/loginUser", (req,res)=>{
+    //if we have to get anything from headers of API : 
+    //req.header("Authorization"); // we have to remove Bearer from token string
     let responseObj = { data : "", message : "", status : "", error : "" };
     const { email, password } = req.body;
     User.findOne({email},(error, user) => {
@@ -116,6 +131,7 @@ router.post("/loginUser", (req,res)=>{
                 responseObj.data = user;
                 responseObj.status = 200;
                 responseObj.error = false;
+                responseObj.token = generateToken(email);
                 res.json(responseObj);
             }
             else{
@@ -133,6 +149,27 @@ router.post("/loginUser", (req,res)=>{
         }
     });
 });
+
+
+const generateToken = (data) => {
+    const token = jwt.sign(data,jwt_key);
+    return token;
+} 
+
+const validateToken = (token) => {
+    try{
+        const isVerified = jwt.verify(token,jwt_key);
+        if(isVerified){
+            return 200;
+        }
+        else{
+            return 401;
+        }
+    }catch(err){
+        return 401;
+    }
+
+} 
 
 module.exports = router;
 
