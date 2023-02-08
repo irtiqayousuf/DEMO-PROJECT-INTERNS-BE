@@ -1,18 +1,30 @@
-const express =  require('express');
+const express =  require("express");
 const router = express.Router();
 var myFunc = require('../functions/getData');
 const posts = require('../models/posts');
 var Posts = require("../models/posts");
-var User = require("../models/user");
-// import User from "../models/user";
+var { User } = require("../models/user");
 var bcrypt = require("bcryptjs");
 const salt = 10;
-let jwt_key = process.env.JWT_TOKEN_KEY;
 var jwt = require("jsonwebtoken");
 
-router.get("/",(req,res)=>{
-    res.send("Hello World!")
-});
+// router.get("/",(req,res)=>{
+//     res.send("Hello World!")
+// });
+
+
+router.get('/cards',(req,res)=>{
+    response = {
+        data : [
+            { id : 1 , title : "Kashmir" , text : "The Kashmir region is predominantly mountainous, with deep, narrow valleys and high, barren plateaus. The relatively low-lying Jammu and Punch (Poonch) plains in the southwest are separated by the thickly forested Himalayan foothills and the Pir Panjal Range of the Lesser Himalayas from the larger, more fertile, and more heavily populated Vale of Kashmir to the north.", url : "https://picsum.photos/seed/picsum/200/300"},
+            { id : 2 , title : "Jammu" , text : "Jammu is mentioned by name in the chronicles of Timur (r. 1370–1406), who invaded Delhi in 1398 and returned to Samarkand via Jammu. In the Mughal chronicles of Babur in the early 16th century, Jammu is mentioned as a powerful state in the Punjab hills. It is said to have been ruled by Manhas Rajputs. Emperor Akbar brought the hill kingdoms.", url : "https://www.pexels.com/photo/green-grass-near-trees-1770809/"},
+            { id : 3 , title : "Ladakh" , text : "Ladakh is a region administered by India as a union territory which constitutes a part of the larger Kashmir region and has been the subject of dispute between India, Pakistan, and China since 1947. adakh is most famous for breathtaking landscapes, the crystal clear skies, the highest mountain passes, thrilling adventure activities, Buddhist Monasteries and festivals.", url : "https://www.pexels.com/photo/a-man-wearing-red-jacket-doing-peace-sign-3225529/" },
+            { id : 4 , title : "Srinagar" , text : "abc@gmail.com", url : "http://localhost:3000/src/natureHome.jpg"},
+        ]
+    }
+
+    res.send(JSON.stringify(response));
+})
 
 router.get("/posts",(req,res)=>{
     response = {
@@ -98,12 +110,12 @@ router.get("/createPost",(req,res)=>{
 
 
 router.post("/createUser",(req,res)=>{
-    const { name, email, password } = req.body;
+    const { name, email, password,phone } = req.body;
     console.log("Plain Password " ,password);
     let enPass =  bcrypt.hashSync(password,salt);
     console.log("Enc Password " ,enPass);
 
-    User.create({name , email, password : enPass},(error, user) => {
+    User.create({name , email, password : enPass, phone},(error, user) => {
         if(error){
             res.send("Cannot create user");
         }
@@ -119,7 +131,7 @@ router.post("/loginUser", (req,res)=>{
     //req.header("Authorization"); // we have to remove Bearer from token string
     let responseObj = { data : "", message : "", status : "", error : "" };
     const { email, password } = req.body;
-    User.findOne({email},(error, user) => {
+    User.findOne ({email},(error, user) => {
         if(error){
             responseObj.message = "Something went wrong";
             responseObj.status = 400;
@@ -171,8 +183,53 @@ const validateToken = (token) => {
 
 } 
 
+// router.post("/login", (req, res)=> {
+//     const { email, password} = req.body;
+//     User.findOne({ email: email}, (err, user) => {
+//        if(users){
+//            if(bcrypt.compareSync(password === users.password)) {
+//                res.send({message: "Login Successfull" , user : user})
+//            } else {
+//                res.send({ message: "Invalid UserName/Password"})
+//             }        
+//            }else {
+//           res.send({message: "User not registered"})
+//         }
+//     })
+// }) 
+
+
+
+
+
+// router.post("/createUsers", (req, res)=> {
+//     const { name, email, password, phone} = req.body
+//     User.findOne({email: email}, (err, user) => {
+//           if(user){
+//            res.send({message: "User already registerd"})
+//         } else {
+//             const Users = new Users({name,email,password,phone})
+//             Users.save(err => {
+//                 if(err) {
+//                     res.send(err)
+//                 } else {
+//                     res.send( { message: "Successfully Registered, Please login now." })
+//                 }
+//             })
+//         }
+//     })
+   
+// }) 
+
+
+
+
 module.exports = router;
 
 
-//sessions, cookies, localStorage  ||  
-//
+
+ 
+
+
+
+

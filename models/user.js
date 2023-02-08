@@ -13,11 +13,16 @@ const UserSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
-    }
-},{collection:"users"});
+    },
+    phone: {
+        type: Number,
+        required: true
+    },
+},{collection:"user"});
 
 module.exports = mongoose.model("User",UserSchema);
 
-//find schema unique key to store unique values in collection
-//create user registrations and check for user login and redirect them on home page
-// before save you have to check for user existance
+
+
+
+
