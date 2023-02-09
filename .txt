@@ -1,0 +1,32 @@
+        // nodemailer.createTransport({
+                //     host: "smtp.gmail.com",
+                //     port: 587,
+                //     secure: false, // upgrade later with STARTTLS
+                //     auth: {
+                //       user: "Insha",
+                //       pass: "1234",
+                //     },
+                //   });
+                // let transporter = nodemailer.createTransport({
+                //     host: "smtp.gmail.com",
+                //     port: 587,
+                //     secure: false, // true for 465, false for other ports
+                //     auth: {
+                //         user: 'kashmirigeeksinstern@gmail.com', // generated ethereal user
+                //         pass: 'kashmir@123'
+                //     },
+                //   });
+                //   let options = transporter.sendMail({
+                //     from: '"Kashmiri Geeks 👻" <kashmirigeeksinstern@gmail.com>', // sender address
+                //     to: 'inushakhan123@gmail.com', // list of receivers
+                //     subject: "Password reset", // Subject line
+                //     text: "Hello world?", // plain text body
+                //     html: "<b>You requested for password reset</b>", // html body
+                //   });
+                //   transporter.sendMail(options, function (error,info) {
+                //     if(error){
+                //         console.log(error);
+                //         return;
+                //     }
+                //     console.log("Sent" + info.response);
+                //   });

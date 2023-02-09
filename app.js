@@ -26,6 +26,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(router);
 
+
 app.listen(port,()=>{
     console.log(`App is running at Port ${port}`);
 })

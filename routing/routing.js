@@ -3,9 +3,25 @@ const router = express.Router();
 var myFunc = require('../functions/getData');
 const posts = require('../models/posts');
 var Posts = require("../models/posts");
-var { User } = require("../models/user");
+var  User  = require("../models/user");
+var  Customer  = require("../models/customer");
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 var bcrypt = require("bcryptjs");
 const salt = 10;
+const sendgridTransport = require('nodemailer-sendgrid-transport');
+const {SENDGRID_API_KEY,EMAIL} = require('dotenv');
+const SMTPServer = require("smtp-server").SMTPServer;
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport(sendgridTransport({
+    auth:{
+        api_key:process.env.SENDGRID_API_KEY,
+        user:'apikey',
+
+    }
+}))
+const crypto = require("crypto");
+let jwt_key = process.env.JWT_TOKEN_KEY;
 var jwt = require("jsonwebtoken");
 
 // router.get("/",(req,res)=>{
@@ -125,6 +141,18 @@ router.post("/createUser",(req,res)=>{
     });
 });
 
+router.post("/saveCustomer",(req,res)=>{
+    const { website, name, phone, plan } = req.body;
+    Customer.create({website, name, phone, plan},(error, customer) => {
+        if(error){
+            res.send("Cannot create customer");
+        }
+        else{
+            res.json(customer);
+        }
+    });
+});
+
 
 router.post("/loginUser", (req,res)=>{
     //if we have to get anything from headers of API : 
@@ -139,7 +167,7 @@ router.post("/loginUser", (req,res)=>{
             res.json(responseObj);
         }
         else if(user){
-            if(bcrypt.compareSync(password,user.password)){
+            if(bcrypt.compare(password,user.password)){
                 responseObj.data = user;
                 responseObj.status = 200;
                 responseObj.error = false;
@@ -182,6 +210,58 @@ const validateToken = (token) => {
     }
 
 } 
+
+// router.post('/reset-password',(req,res)=>{
+//     crypto.randomBytes(32,(err,buffer)=>{
+//         if(err){
+//             console.log(err)
+//         }
+//         const token = buffer.toString("hex")
+//         User.findOne({email:req.body.email})
+//         .then(user=>{
+//             if(!user){
+//                 return res.status(422).json({error:"User dont exists with that email"})
+//             }
+//             user.resetToken = token
+//             user.expireToken = Date.now() + 3600000
+//             user.save().then((result)=>{
+//                 transporter.sendMail({
+//                     to:user.email,
+//                     from:"inushakhan123@gmail.com",
+//                     subject:"password reset",
+//                     html:`
+//                     <p>You requested for password reset</p>
+//                     <h5>click in this <a href="${EMAIL}/reset/${token}">link</a> to reset password</h5>
+//                     `
+//                 })
+//                 res.json({message:"check your email"})
+//             })
+
+//         })
+//     })
+
+// })
+
+router.post('/new-password',(req,res)=>{
+    const newPassword = req.body.password
+    const sentToken = req.body.token
+    User.findOne({resetToken:sentToken,expireToken:{$gt:Date.now()}})
+    .then(user=>{
+        if(!user){
+            return res.status(422).json({error:"Try again session expired"})
+        }
+        bcrypt.hash(newPassword,12).then(hashedpassword=>{
+           user.password = hashedpassword
+           user.resetToken = undefined
+           user.expireToken = undefined
+           user.save().then((saveduser)=>{
+               res.json({message:"password updated success"})
+           })
+        })
+    }).catch(err=>{
+        console.log(err)
+    })
+ })
 
 // router.post("/login", (req, res)=> {
 //     const { email, password} = req.body;
