@@ -18,8 +18,14 @@ const CustomerSchema = new mongoose.Schema({
     },
     plan: {
         type: String,
-        required: true
+        default:true
     },
+    email:{
+       type: String,
+       required: true,
+       unique: true
+    },
+    token:String
 },{collection:"customer"});
 
 module.exports = mongoose.model("Customer",CustomerSchema);

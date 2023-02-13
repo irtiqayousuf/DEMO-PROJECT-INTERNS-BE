@@ -14,15 +14,24 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    resetToken:String,
-    expireToken:Date,
     phone: {
         type: Number,
-        required: true
+        required: true,
+        unique: true
     },
+    resetToken:String,
+    expireToken:Date,
 },{collection:"user"});
+  
+module.exports = mongoose.model("User",UserSchema );
 
-module.exports = mongoose.model("User",UserSchema);
+
+
+
+
+
+
+
 
 
 

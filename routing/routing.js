@@ -1,28 +1,35 @@
 const express =  require("express");
 const router = express.Router();
+const cors = require("cors");
 var myFunc = require('../functions/getData');
 const posts = require('../models/posts');
 var Posts = require("../models/posts");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_TEST);
 var  User  = require("../models/user");
 var  Customer  = require("../models/customer");
-const sgMail = require("@sendgrid/mail");
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+var dotenv = require("dotenv");
+dotenv.config();
 var bcrypt = require("bcryptjs");
 const salt = 10;
-const sendgridTransport = require('nodemailer-sendgrid-transport');
-const {SENDGRID_API_KEY,EMAIL} = require('dotenv');
 const SMTPServer = require("smtp-server").SMTPServer;
 const nodemailer = require('nodemailer');
-const transporter = nodemailer.createTransport(sendgridTransport({
-    auth:{
-        api_key:process.env.SENDGRID_API_KEY,
-        user:'apikey',
-
-    }
-}))
+const BCRYPT_SALT_ROUNDS = 12;
 const crypto = require("crypto");
 let jwt_key = process.env.JWT_TOKEN_KEY;
 var jwt = require("jsonwebtoken");
+// const requireLogin = require('../middleware/requireLogin')
+const Joi = require("joi");
+const passwordComplexity = require("joi-password-complexity");
+
+// email config
+
+// const transporter = nodemailer.createTransport({
+//     service:"gmail",
+//     auth:{
+//         user:process.env.EMAIL,
+//         pass:process.env.PASSWORD
+//     }
+// }) 
 
 // router.get("/",(req,res)=>{
 //     res.send("Hello World!")
@@ -142,8 +149,8 @@ router.post("/createUser",(req,res)=>{
 });
 
 router.post("/saveCustomer",(req,res)=>{
-    const { website, name, phone, plan } = req.body;
-    Customer.create({website, name, phone, plan},(error, customer) => {
+    const { website, name, phone, plan, email } = req.body;
+    Customer.create({website, name, phone, plan, email},(error, customer) => {
         if(error){
             res.send("Cannot create customer");
         }
@@ -159,7 +166,9 @@ router.post("/loginUser", (req,res)=>{
     //req.header("Authorization"); // we have to remove Bearer from token string
     let responseObj = { data : "", message : "", status : "", error : "" };
     const { email, password } = req.body;
+    console.log("line 169",req.body)
     User.findOne ({email},(error, user) => {
+        console.log("line 171",user);
         if(error){
             responseObj.message = "Something went wrong";
             responseObj.status = 400;
@@ -211,100 +220,222 @@ const validateToken = (token) => {
 
 } 
 
-// router.post('/reset-password',(req,res)=>{
-//     crypto.randomBytes(32,(err,buffer)=>{
-//         if(err){
-//             console.log(err)
-//         }
-//         const token = buffer.toString("hex")
-//         User.findOne({email:req.body.email})
-//         .then(user=>{
-//             if(!user){
-//                 return res.status(422).json({error:"User dont exists with that email"})
-//             }
-//             user.resetToken = token
-//             user.expireToken = Date.now() + 3600000
-//             user.save().then((result)=>{
-//                 transporter.sendMail({
-//                     to:user.email,
-//                     from:"inushakhan123@gmail.com",
-//                     subject:"password reset",
-//                     html:`
-//                     <p>You requested for password reset</p>
-//                     <h5>click in this <a href="${EMAIL}/reset/${token}">link</a> to reset password</h5>
-//                     `
-//                 })
-//                 res.json({message:"check your email"})
-//             })
 
-//         })
-//     })
+router.post('/reset-password', (req, res) => {
+    crypto.randomBytes(32, (err, buffer) => {
+        if (err) {
+            console.log(err)
+        }
 
-// })
+        const token = buffer.toString("hex")
+        User.findOne({ email: req.body.email })
+            .then(user => {
+                if (!user) {
+                    return res.status(422).json({ error: "User doesnt exists with given email" })
+                }
 
-router.post('/new-password',(req,res)=>{
+                user.resetToken = token
+                user.expireToken = Date.now() + 3600000
+                user.markModified('resetToken')
+                user.markModified('expireToken')
+                user.save().then((result) => {
+                   
+                        // to: user.email,
+                        // from: process.env.SENDGRID_EMAIL,
+                        // subject: 'Password Reset',
+                        // html: `
+                        // <p>You have requested for password reset</p>
+                        // <h5>click in this <a href="http://localhost:3000/reset/${token}">link</a> to reset password</h5>
+                        // `
+                        const transport = nodemailer.createTransport({
+                            host: process.env.HOST,
+                            service: process.env.SERVICE,
+                            port:process.env.EMAIL_PORT,
+                            secure:process.env.SECURE,
+                            auth: {
+                              user: process.env.USER,
+                              pass: process.env.PASS,
+                            },
+                          });
+                
+                          const mailOptions = {
+                            from: process.env.USER,
+                            to: user.email,
+                            subject: `Password Reset Request`,
+                            html: `
+                            <p>You have requested for password reset</p>
+                            <h5>click in this <a href="http://localhost:3000/reset/${token}">link</a> to reset password</h5>
+                            `
+                          };
+                
+                          transport.sendMail(mailOptions, (error, info) => {
+                            if (error) {
+                              return res.status(400).json({ message: "Error" });
+                            }
+                            return res.status(200).json({ message: "Email Sent" });
+                          });
+                    
+
+                    res.json({ message: "check your mail" })
+                })
+            })
+    })
+})
+
+router.post('/new-password/:token', (req, res) => {
     const newPassword = req.body.password
     const sentToken = req.body.token
-    User.findOne({resetToken:sentToken,expireToken:{$gt:Date.now()}})
-    .then(user=>{
-        if(!user){
-            return res.status(422).json({error:"Try again session expired"})
-        }
-        bcrypt.hash(newPassword,12).then(hashedpassword=>{
-           user.password = hashedpassword
-           user.resetToken = undefined
-           user.expireToken = undefined
-           user.save().then((saveduser)=>{
-               res.json({message:"password updated success"})
-           })
+
+    User.findOne({ resetToken: sentToken, expireToken: { $gt: Date.now() } })
+        .then(user => {
+            if (!user) {
+                return res.status(422).json({ error: "Try again! Session may expired" })
+            }
+
+            bcrypt.hash(newPassword, 12).then(hashedpassword => {
+                user.password = hashedpassword
+                user.resetToken = undefined
+                user.expireToken = undefined
+                user.markModified('password')
+                user.markModified('resetToken')
+                user.markModified('expireToken')
+                user.save().then((saveduser) => {
+                    res.json({ message: "password updated successfully" })
+                })
+            })
+
+        }).catch(err => {
+            console.log(err)
         })
-    }).catch(err=>{
-        console.log(err)
-    })
- })
+})
 
-// router.post("/login", (req, res)=> {
-//     const { email, password} = req.body;
-//     User.findOne({ email: email}, (err, user) => {
-//        if(users){
-//            if(bcrypt.compareSync(password === users.password)) {
-//                res.send({message: "Login Successfull" , user : user})
-//            } else {
-//                res.send({ message: "Invalid UserName/Password"})
-//             }        
-//            }else {
-//           res.send({message: "User not registered"})
+
+
+// router.get("/new-password/:token", async (req, res) => {
+//     const { _id,token } = req.params;
+//     console.log(req.params);
+//     const oldUser = await User.findOne({ _id: id });
+//     if (!oldUser) {
+//       return res.json({ status: "User Not Exists!!" });
+//     }
+//     const secret = JWT_SECRET + oldUser.password;
+//     try {
+//       const verify = jwt.verify(token, secret);
+//       res.render("index", { email: verify.email, status: "Not Verified" });
+//     } catch (error) {
+//       console.log(error);
+//       res.send("Not Verified");
+//     }
+//   });
+  
+//   router.post("/new-password/:token", async (req, res) => {
+//     const { token } = req.params;
+//     const { password } = req.body;
+  
+//     const oldUser = await User.findOne({ _id: id });
+//     if (!oldUser) {
+//       return res.json({ status: "User Not Exists!!" });
+//     }
+//     const secret = JWT_SECRET + oldUser.password;
+//     try {
+//       const verify = jwt.verify(token, secret);
+//       const encryptedPassword = await bcrypt.hash(password, 10);
+//       await User.updateOne(
+//         {
+//           _id: id,
+//         },
+//         {
+//           $set: {
+//             password: encryptedPassword,
+//           },
 //         }
-//     })
-// }) 
+//       );
+  
+//       res.render("index", { email: verify.email, status: "verified" });
+//     } catch (error) {
+//       console.log(error);
+//       res.json({ status: "Something Went Wrong" });
+//     }
+//   });
+  
+router.get("/pricing",(req,res)=>{
+    response = {
+        url : [
+            { id : 1 , title : "Basic" ,    subtitle: "The professional plan adds features such as multifactor authentication, admin roles, the ability to connect an external database, and up to 10 Actions.", subtitle2: "The professional plan adds features such as multifactor authentication, admin roles, the ability to connect an external database, and up to 10 Actions.", price_id: "Free"},
+            { id : 2 , title : "Standard", subtitle: "The professional plan adds features such as multifactor authentication, admin roles, the ability to connect an external database, and up to 10 Actions.", subtitle2: "The professional plan adds features such as multifactor authentication, admin roles, the ability to connect an external database, and up to 10 Actions.", price_id: "Pay ₹ 300"},
+            { id : 3 , title : "Premium",  subtitle: "The professional plan adds features such as multifactor authentication, admin roles, the ability to connect an external database, and up to 10 Actions.",subtitle2: "The professional plan adds features such as multifactor authentication, admin roles, the ability to connect an external database, and up to 10 Actions.", price_id: "Pay ₹ 500"},
+        ]
+    }
+    res.send(JSON.stringify(response));
+    // res.send(`POSTS API ${req.param('name')}`)
+})
 
 
 
-
-
-// router.post("/createUsers", (req, res)=> {
-//     const { name, email, password, phone} = req.body
-//     User.findOne({email: email}, (err, user) => {
-//           if(user){
-//            res.send({message: "User already registerd"})
-//         } else {
-//             const Users = new Users({name,email,password,phone})
-//             Users.save(err => {
-//                 if(err) {
-//                     res.send(err)
-//                 } else {
-//                     res.send( { message: "Successfully Registered, Please login now." })
-//                 }
-//             })
-//         }
-//     })
-   
-// }) 
-
-
-
+router.post("/stripe/charge", cors(), async (req, res) => {
+    console.log("stripe-routes.js 9 | route reached", req.body);
+    let { amount, id } = req.body;
+    console.log("stripe-routes.js 10 | amount and id", amount, id);
+    try {
+      const payment = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "USD",
+        description: "Your Company Description",
+        payment_method: id,
+        confirm: true,
+      });
+      console.log("stripe-routes.js 19 | payment", payment);
+      res.json({
+        message: "Payment Successful",
+        success: true,
+      });
+    } catch (error) {
+      console.log("stripe-routes.js 17 | error", error);
+      res.json({
+        message: "Payment Failed",
+        success: false,
+      });
+    }
+  });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// user logout
+
+// router.get("/logout",authenticate,async(req,res)=>{
+//     try {
+//         req.rootUser.tokens =  req.rootUser.tokens.filter((curelem)=>{
+//             return curelem.token !== req.token
+//         });
+
+//         res.clearCookie("usercookie",{path:"/"});
+
+//         req.rootUser.save();
+
+//         res.status(201).json({status:201})
+
+//     } catch (error) {
+//         res.status(401).json({status:401,error})
+//     }
+// });
+
+
+
+
+
 
 
 
