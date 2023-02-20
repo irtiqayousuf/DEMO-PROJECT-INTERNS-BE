@@ -19,6 +19,7 @@ const UserSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+   
     resetToken:String,
     expireToken:Date,
 },{collection:"user"});

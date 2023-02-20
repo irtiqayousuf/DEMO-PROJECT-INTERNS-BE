@@ -15,6 +15,7 @@ app.set('view engine', 'ejs');
 app.use(cors());
 app.use(bodyParser.json());
 app.use(router);
+app.use('/api', router);
 
 app.listen(port,()=>{
     console.log(`App is running at Port ${port}`);

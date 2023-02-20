@@ -6,7 +6,9 @@ const posts = require('../models/posts');
 var Posts = require("../models/posts");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_TEST);
 var  User  = require("../models/user");
+var  Admin  = require("../models/admin");
 var  Customer  = require("../models/customer");
+var  CusToken  = require("../models/cusToken");
 var dotenv = require("dotenv");
 dotenv.config();
 var bcrypt = require("bcryptjs");
@@ -20,6 +22,7 @@ var jwt = require("jsonwebtoken");
 // const requireLogin = require('../middleware/requireLogin')
 const Joi = require("joi");
 const passwordComplexity = require("joi-password-complexity");
+var db= require("../config/database.js");
 
 // email config
 
@@ -136,6 +139,7 @@ router.post("/createUser",(req,res)=>{
     const { name, email, password,phone } = req.body;
     console.log("Plain Password " ,password);
     let enPass =  bcrypt.hashSync(password,salt);
+   
     console.log("Enc Password " ,enPass);
 
     User.create({name , email, password : enPass, phone},(error, user) => {
@@ -149,16 +153,53 @@ router.post("/createUser",(req,res)=>{
 });
 
 router.post("/saveCustomer",(req,res)=>{
-    const { website, name, phone, plan, email } = req.body;
-    Customer.create({website, name, phone, plan, email},(error, customer) => {
+    const { plan,website, name, phone,email } = req.body;
+    Customer.findOne({email : email},(err,customer)=>{
+        if(customer){
+            res.send({message:"Email Already Registered"})
+        }else{
+    Customer.create({plan ,website, name, phone, email},(error, customer) => {
         if(error){
             res.send("Cannot create customer");
         }
         else{
             res.json(customer);
         }
+    })
+}
     });
 });
+
+router.post("/saveAdmin",(req,res)=>{
+    const { role,name, phone, email,password } = req.body;
+    Admin.findOne({email : email},(err,admin)=>{
+        if(admin){
+            res.send({message:"Email Already Registered"})
+        }else{
+    Admin.create({role,name, phone, email,password },(error, admin) => {
+        if(error){
+            res.send("Cannot create customer");
+        }
+        else{
+            res.json(admin);
+        }
+    })
+}
+    });
+});
+
+router.post("/saveToken",(req,res)=>{
+    const { token } = req.body;
+    Token.create({token},(error, token) => {
+        if(error){
+            res.send("Cannot create token");
+        }
+        else{
+            res.json(token);
+        }
+    });
+});
+
 
 
 router.post("/loginUser", (req,res)=>{
@@ -167,7 +208,7 @@ router.post("/loginUser", (req,res)=>{
     let responseObj = { data : "", message : "", status : "", error : "" };
     const { email, password } = req.body;
     console.log("line 169",req.body)
-    User.findOne ({email},(error, user) => {
+    User.findOne({email},(error, user) => {
         console.log("line 171",user);
         if(error){
             responseObj.message = "Something went wrong";
@@ -176,8 +217,52 @@ router.post("/loginUser", (req,res)=>{
             res.json(responseObj);
         }
         else if(user){
-            if(bcrypt.compare(password,user.password)){
+            if(bcrypt.compare(password,user.password,(err,res)=>{
+                console.log(res);
+                console.log("line no. 183",err);
+            })){
                 responseObj.data = user;
+                responseObj.status = 200;
+                responseObj.error = false;
+                responseObj.token = generateToken(email);
+                res.json(responseObj);
+            }
+            else{
+                responseObj.message = "Invalid Password";
+                responseObj.status = 200;
+                responseObj.error = false;
+                res.json(responseObj);
+            }
+        }
+        else{
+            responseObj.message = "Invalid Username/Password";
+            responseObj.status = 200;
+            responseObj.error = true;
+            res.json(responseObj);
+        }
+    });
+});
+
+router.post("/AdminUser", (req,res)=>{
+    //if we have to get anything from headers of API : 
+    //req.header("Authorization"); // we have to remove Bearer from token string
+    let responseObj = { data : "", message : "", status : "", error : "" };
+    const { email, password } = req.body;
+    console.log("line 169",req.body)
+    Admin.findOne({email},(error, admin) => {
+        console.log("line 171",admin);
+        if(error){
+            responseObj.message = "Something went wrong";
+            responseObj.status = 400;
+            responseObj.error = true;
+            res.json(responseObj);
+        }
+        else if(admin){
+            if(password === "1234",(err,res)=>{
+                console.log(res);
+                console.log("line no. 183",err);
+            }){
+                responseObj.data = admin;
                 responseObj.status = 200;
                 responseObj.error = false;
                 responseObj.token = generateToken(email);
@@ -220,6 +305,15 @@ const validateToken = (token) => {
 
 } 
 
+
+
+// // Generate a JWT access token for the user
+// const token = jwt.sign({ email: customer.email, id: customer._id }, 'access_api_custommer', { expiresIn: '1h' });
+// const updatedUser = await Customer.findOneAndUpdate(
+//     { _id: customer._id },
+//     { $set: { accessToken: token } },
+//     { new: true }
+//   );
 
 router.post('/reset-password', (req, res) => {
     crypto.randomBytes(32, (err, buffer) => {
@@ -371,31 +465,79 @@ router.get("/pricing",(req,res)=>{
 })
 
 
+router.get('/user/profile/:id', async (req, res) => {
 
-router.post("/stripe/charge", cors(), async (req, res) => {
-    console.log("stripe-routes.js 9 | route reached", req.body);
-    let { amount, id } = req.body;
-    console.log("stripe-routes.js 10 | amount and id", amount, id);
     try {
-      const payment = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "USD",
-        description: "Your Company Description",
-        payment_method: id,
-        confirm: true,
-      });
-      console.log("stripe-routes.js 19 | payment", payment);
-      res.json({
-        message: "Payment Successful",
-        success: true,
-      });
+      const user = await User.findById(req.params.id);
+      res.send(user);
     } catch (error) {
-      console.log("stripe-routes.js 17 | error", error);
-      res.json({
-        message: "Payment Failed",
-        success: false,
-      });
+      res.status(500).send(error.message);
     }
+  });
+
+
+  router.post('/token', (req, res) => {
+    const { name } = req.body;
+  
+    // Generate a random hash key
+    const hash = crypto.randomBytes(32).toString('hex');
+  
+    // Store the hash key in the database
+    Customer.findOneAndUpdate({ name }, { hash }, { upsert: true })
+      .then(() => {
+        // Return the hash key as the API access token
+        res.json({ token: hash });
+      })
+      .catch((error) => {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to generate token' });
+      });
+  });
+
+  
+router.get('/getCustomers', async (req, res) => {
+     
+    //    var coll= db.collection('customer');
+    //    coll.find({}).toArray(function (err,result) {
+    //       if(err){
+    //         res.send(err);
+    //       } else{
+    //           res.send(JSON.stringify(result));
+    //       }
+    //    })
+    try {
+        const customer = await Customer.find({});
+        res.send(JSON.stringify(customer));
+      } catch (error) {
+        res.status(500).send(error.message);
+      }
+  });
+  
+  router.get("/customer/getToken/:id", async (req,res)=>{
+    try{
+        const cus= await Customer.findById(req.params.id);
+        res.send(cus);
+        
+    } catch (error){
+        res.status(500).send(error.message);
+    }
+})
+
+
+router.post('/generateToken', (req, res) => {
+    const email = req.body.email;
+    console.log("line 281",email);
+    const token = jwt.sign({ email }, 'secret-key');
+    const newToken = new CusToken({ email, token });
+    newToken.save((err) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send('Error saving token');
+      } else {
+        res.send({ token });
+      }
+    });
+
   });
 
 module.exports = router;
