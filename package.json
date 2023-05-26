@@ -18,7 +18,6 @@
   },
   "homepage": "https://github.com/maahibhat88/DEMO-PROJECT-INTERNS-BE#readme",
   "dependencies": {
-  
     "bcrypt": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.1",
@@ -34,8 +33,10 @@
     "nodemailer": "^6.9.1",
     "nodemailer-sendgrid-transport": "^0.2.0",
     "nodemon": "^2.0.20",
+    "otp-generator": "^4.0.1",
     "smtp-server": "^3.11.0",
     "stripe": "^11.10.0",
+    "twilio": "^4.9.0",
     "validator": "^13.9.0"
   }
 }

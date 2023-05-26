@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 // const { MONGO_URI } = process.env;
 
-const MONGO_URI = "mongodb+srv://demo:demo123@internship.l1qe1xr.mongodb.net/internship";
+const MONGO_URI = "mongodb+srv://irtiqa:irtiqa123@cluster0.blvqini.mongodb.net/Internship";
 exports.connect = () => {
 
     mongoose.connect(MONGO_URI).then( () => {

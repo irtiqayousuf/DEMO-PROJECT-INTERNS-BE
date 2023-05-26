@@ -2,7 +2,10 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const cusTokenSchema = new Schema({
-	
+	phone: {
+        type: String,
+        required : true
+    },
 	email:{
         type:String,
 		required:true
@@ -10,7 +13,9 @@ const cusTokenSchema = new Schema({
 	token: { type: String,
 		 required: true
 	 },
-	createdAt: { type: Date, default: Date.now, expires: "2h" },
+	// createdAt: { type: Date, 
+	// 	default: Date.now,
+	// 	},
 },{collection:"Custoken"});
 
 module.exports = mongoose.model("CusToken", cusTokenSchema);
