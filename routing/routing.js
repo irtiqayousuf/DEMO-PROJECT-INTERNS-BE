@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const cors = require("cors");
-var myFunc = require('../functions/getData');
+// var myFunc = require('../functions/getData');
 const posts = require('../models/posts');
 var Posts = require("../models/posts");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_TEST);
@@ -371,29 +371,29 @@ router.get('/user/profile/:id', async (req, res) => {
 });
 
 
-router.post('/token', (req, res) => {
-    const { name } = req.body;
+// router.post('/token', (req, res) => {
+//     const { name } = req.body;
 
-    // Generate a random hash key
-    const hash = crypto.randomBytes(32).toString('hex');
+//     // Generate a random hash key
+//     const hash = crypto.randomBytes(32).toString('hex');
 
-    // Store the hash key in the database
-    Customer.findOneAndUpdate({ name }, { hash }, { upsert: true })
-        .then(() => {
-            // Return the hash key as the API access token
-            res.json({ token: hash });
-        })
-        .catch((error) => {
-            console.error(error);
-            res.status(500).json({ error: 'Failed to generate token' });
-        });
-});
+//     // Store the hash key in the database
+//     Customer.findOneAndUpdate({ name }, { hash }, { upsert: true })
+//         .then(() => {
+//             // Return the hash key as the API access token
+//             res.json({ token: hash });
+//         })
+//         .catch((error) => {
+//             console.error(error);
+//             res.status(500).json({ error: 'Failed to generate token' });
+//         });
+// });
 
 router.get('/getCustomers', async (req, res) => {
 
     //    var coll= db.collection('customer');
     //    coll.find({}).toArray(function (err,result) {
-    //       if(err){
+    //       if(er
     //         res.send(err);
     //       } else{
     //           res.send(JSON.stringify(result));
