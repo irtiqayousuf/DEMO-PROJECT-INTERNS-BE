@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/maahibhat88/DEMO-PROJECT-INTERNS-BE#readme",
   "dependencies": {
+    "axios": "^1.4.0",
     "bcrypt": "^5.1.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.1",
@@ -26,6 +27,8 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "fs": "^0.0.1-security",
     "joi": "^17.7.1",
     "joi-password-complexity": "^5.1.0",
     "jsonwebtoken": "^9.0.0",
@@ -34,9 +37,13 @@
     "nodemailer-sendgrid-transport": "^0.2.0",
     "nodemon": "^2.0.20",
     "otp-generator": "^4.0.1",
+    "path": "^0.12.7",
+    "puppeteer": "^20.4.0",
+    "qrcode-terminal": "^0.12.0",
     "smtp-server": "^3.11.0",
     "stripe": "^11.10.0",
     "twilio": "^4.9.0",
-    "validator": "^13.9.0"
+    "validator": "^13.9.0",
+    "whatsapp-web.js": "^1.21.0"
   }
 }

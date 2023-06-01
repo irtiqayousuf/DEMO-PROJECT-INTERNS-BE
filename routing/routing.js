@@ -2,13 +2,14 @@ const express = require("express");
 const router = express.Router();
 const cors = require("cors");
 // var myFunc = require('../functions/getData');
-const posts = require('../models/posts');
-var Posts = require("../models/posts");
+// const posts = require('../models/posts');
+// var Posts = require("../models/posts");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_TEST);
 var User = require("../models/user");
 var Admin = require("../models/admin");
 var Customer = require("../models/customer");
 var Token = require("../models/cusToken");
+var OTPemail=require("../models/emailotp");
 var dotenv = require("dotenv");
 dotenv.config();
 var bcrypt = require("bcryptjs");
@@ -21,12 +22,177 @@ let jwt_key = process.env.JWT_TOKEN_KEY;
 var jwt = require("jsonwebtoken");
 const twilio = require('twilio');
 const otpGenerator = require('otp-generator');
-var OTP = require("../models/otp");
+// var OTP = require("../models/otp");
 // const requireLogin = require('../middleware/requireLogin')
 const Joi = require("joi");
 const passwordComplexity = require("joi-password-complexity");
 var db = require("../config/database.js");
 const secret_key = process.env.JWT_TOKEN_KEY;
+const axios = require('axios');
+const { Client } = require('whatsapp-web.js');
+const session = require('express-session');
+
+// Initialize WhatsApp client
+const client = new Client({ puppeteer: { headless: true } });
+
+// Configure session middleware
+router.use(
+  session({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+// // Middleware to check if user is authenticated
+const checkAuthenticated = (req, res, next) => {
+  if (req.session.isAuthenticated) {
+    return next();
+  }
+  res.redirect('/login');
+};
+
+// Route for verifying phone number and sending OTP via WhatsApp
+router.post('/api/verifyapp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    console.log("phone no", phone);
+
+    // Check if the phone number exists in the database (replace with your own logic)
+    const token = await Token.findOne({ phone }).exec();
+    console.log("token", token);
+    if (!Token) {
+      // Phone number not found in the database
+      return res.status(400).json({ message: 'Phone number not valid' });
+    }
+
+    // Generate OTP (replace with your own OTP generation logic)
+    const otp = generateOTP();
+    console.log("otp", otp);
+    // Store the OTP in the session for verification later
+    req.session.otp = otp;
+    console.log("req.session.otp", otp);
+
+    // Connect to WhatsApp client
+    await client.initialize();
+
+    // Send OTP via WhatsApp
+    await client.sendMessage(`${phone}@c.us`, `Your OTP is: ${otp}`);
+
+    // Close the WhatsApp client
+    await client.destroy();
+
+    // OTP sent successfully
+    return res.status(200).json({ message: 'OTP sent successfully' });
+  } catch (error) {
+    console.error('Error:', error);
+    return res.status(500).json({ message: 'Error sending OTP' });
+  }
+});
+
+// Route for verifying the entered OTP
+// router.post('/api/verifyotp', async (req, res) => {
+//   try {
+//     const { otp } = req.body;
+
+//     // Retrieve the stored OTP from the session
+//     const storedOTP = req.session.otp;
+
+//     if (otp === storedOTP) {
+//       // OTP is valid
+//       // Perform further actions or redirect to success page
+//       return res.status(200).json({ message: 'OTP verified successfully' });
+//     } else {
+//       // Invalid OTP
+//       return res.status(400).json({ message: 'Invalid OTP' });
+//     }
+//   } catch (error) {
+//     console.error('Error:', error);
+//     return res.status(500).json({ message: 'Error verifying OTP' });
+//   }
+// });
+
+// // Function to check if the phone number exists in the database
+function checkPhoneInDatabase(phone) {
+  // Implement your database query logic here
+  // Example using axios to make a request to a backend API
+  return axios.get('http://localhost:8080/api/check-phone', { params: { phone } })
+    .then(response => {
+      // Check the response and return true/false based on whether the phone number exists
+      return response.data.exists;
+    })
+    .catch(error => {
+      console.error('Error checking phone in database:', error);
+      throw error;
+    });
+}
+
+// Function to generate OTP
+function generateOTP() {
+  // Implement your OTP generation logic here
+  // Example generating a 6-digit OTP
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+
+router.get('/api/check-phone', (req, res) => {
+    const { phone } = req.query;
+  
+    Token.findOne({ phone }, (error, token) => {
+      if (error) {
+        return res.status(400).json({ message: "Something went wrong", error: true });
+      } else if (token) {
+        return res.status(200).json({ data: token, error: false });
+      } else {
+        return res.status(200).json({ message: "Invalid Number", error: false });
+      }
+    });
+  });
+
+// app.get('/api/check-phone', (req, res) => {  
+//     let responseObj = { data: "", message: "", status: "", error: "" };
+//     const { phone } = req.query;
+//     console.log("line 169", req.body)
+//     Token.findOne({ phone }, (error, token) => {
+//         //console.log("line 169", token);
+//         console.log("msg 564", phone);
+//         if (error) {
+//             responseObj.message = "Something went wrong";
+//             responseObj.status = 400;
+//             responseObj.error = true;
+//             res.json(responseObj);
+//         }
+//         else if (token) {
+//             responseObj.data = token;
+//           //  console.log("line 169", token);
+//             responseObj.status = 200;
+//             responseObj.error = false;
+//             res.json(responseObj);    
+//         }
+//         else {
+//             responseObj.message = "Invalid Number";
+//             responseObj.status = 200;
+//             responseObj.error = false;
+//             res.json(responseObj);
+//         }
+    
+//     });
+  
+//     // Example response where phone number exists
+//     if (phone === '1234567890') {
+//       return res.json({ exists: true });
+//     }
+  
+//     // Example response where phone number does not exist
+//     return res.json({ exists: false });
+//   });
+
+
+
+
+
+
+
 // email config
 
 // const transporter = nodemailer.createTransport({
@@ -264,6 +430,7 @@ router.post('/reset-password', (req, res) => {
                             + `E-Auth Provider`
                     };
 
+                    
                     transport.sendMail(mailOptions, (error, info) => {
                         if (error) {
                             return res.status(400).json({ message: "Error" });
@@ -440,13 +607,13 @@ router.post('/checkToken', (req, res) => {
         if (err) {
             console.error('Error:', err);
             res.sendStatus(500);
-            res.message("Invalid or Incorrect Token");
+           console.log("Invalid or Incorrect Token");
         } else if (token) {
             res.sendStatus(200);
 
         } else {
             res.sendStatus(404);
-            res.message("Invalid or Incorrect Token");
+            console.log("Invalid or Incorrect Token");
         }
     });
 });
@@ -458,9 +625,9 @@ router.post("/comp-otp", (req, res) => {
     const { otp, phone } = req.body;
     console.log("line 251", req.body)
 
-    const accountSid = "AC485dc61a4f588f50c3795ff671b2730a";
+    const accountSid = process.env.TWILIO_ACCOUNT_SID_TOKEN;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const verifySid = "VA25a70a8e18259f3557706f227ed75ce9";
+    const verifySid = process.env.TWILIO_SID_TOKEN;
     const client = require("twilio")(accountSid, authToken);
 
     client.verify.v2.services(verifySid)
@@ -492,12 +659,13 @@ router.post("/comp-otp", (req, res) => {
 });
 
 
-router.post('/api/verify', async (req, res) => {
+router.post('/api/verifyphone', async (req, res) => {
 
     let responseObj = { data: "", message: "", status: "", error: "" };
     const { phone } = req.body;
     console.log("line 169", req.body)
     Token.findOne({ phone }, (error, token) => {
+        //console.log("line 169", token);
         console.log("msg 564", phone);
         if (error) {
             responseObj.message = "Something went wrong";
@@ -507,6 +675,7 @@ router.post('/api/verify', async (req, res) => {
         }
         else if (token) {
             responseObj.data = token;
+          //  console.log("line 169", token);
             responseObj.status = 200;
             responseObj.error = false;
             res.json(responseObj);
@@ -523,12 +692,10 @@ router.post('/api/verify', async (req, res) => {
         }
     });
 
-
-
     function verificationOtpProvider(phone) {
-        const accountSid = "AC485dc61a4f588f50c3795ff671b2730a";
+        const accountSid = process.env.TWILIO_ACCOUNT_SID_TOKEN;
         const authToken = process.env.TWILIO_AUTH_TOKEN;
-        const verifySid = "VA25a70a8e18259f3557706f227ed75ce9";
+        const verifySid = process.env.TWILIO_SID_TOKEN;
         const client = require("twilio")(accountSid, authToken);
 
 
@@ -543,20 +710,181 @@ router.post('/api/verify', async (req, res) => {
 
                 });
 
-
-
-                //   readline.question("Please enter the OTP:", (otp) => {
-                //     client.verify.v2
-                //       .services(verifySid)
-                //       .verificationChecks.create({ to: `+919469313239`, code: otp })
-                //       .then((verification_check) => console.log(verification_check.status))
-                //       .then(() => readline.close());
-                //   });
-
             });
     }
 })
 
+router.post('/api/verifyemail', async (req, res) => {
+  try {
+    let responseObj = { data: "", message: "", status: "", error: "" };
+    const { email } = req.body;
+    console.log("line 568", req.body);
+
+    const token = await Token.findOne({ email }).exec();
+    console.log("msg 564", email);
+    console.log("msg 571", token);
+
+    if (!token) {
+      responseObj.message = "Token not found";
+      responseObj.status = 404;
+      responseObj.error = true;
+      return res.json(responseObj);
+    }
+
+    // Delete any existing OTP email for the given email
+    await OTPemail.findOneAndDelete({ email: token.email }).exec();
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    const otpemail = new OTPemail({
+      email: token.email,
+      otp: otp
+    });
+
+    await otpemail.save();
+
+    const transport = nodemailer.createTransport({
+      host: process.env.HOST,
+      service: process.env.SERVICE,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.SECURE,
+      auth: {
+        user: process.env.USER,
+        pass: process.env.PASS,
+      },
+    });
+
+    // Configure email options
+    const mailOptions = {
+      from: process.env.USER,
+      to: token.email,
+      subject: `OTP Verification`,
+      html: `Dear User,<br/>`
+        + ` You have requested for Otp for Login.Your One Time Password (OTP) is: ${otp}<br/>`
+        + `Regards<br/>`
+        + `Authentication System Api`
+    };
+
+    // Send email
+    transport.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        responseObj.message = 'Failed to send OTP';
+        responseObj.status = 500;
+        responseObj.error = true;
+        res.json(responseObj);
+      } else {
+        responseObj.data = token;
+        responseObj.status = 200;
+        responseObj.error = false;
+        res.json(responseObj);
+      }
+    });
+
+    // Set a timer to remove the data from otpemail after 2 minutes
+    setTimeout(async () => {
+      await OTPemail.findOneAndDelete({ email: token.email }).exec();
+      console.log(`OTP data for ${token.email} removed after 2 minutes`);
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+  } catch (error) {
+    console.error(error);
+    let responseObj = { data: "", message: "Something went wrong", status: 500, error: true };
+    res.json(responseObj);
+  }
+});
+
+  router.post("/compemail-otp", (req, res) => {
+    let responseObj = { data: "", message: "", status: "", error: "" };
+    const { otp, email } = req.body;
+    console.log("line 251", req.body);
+  
+    OTPemail.findOne({ email }, (error, OTPemail) => {
+      if (error) {
+        responseObj.message = "Something went wrong";
+        responseObj.status = 400;
+        responseObj.error = true;
+        return res.json(responseObj);
+      }
+  
+      if (!OTPemail) {
+        responseObj.message = "OTP data not found";
+        responseObj.status = 404;
+        responseObj.error = true;
+        return res.json(responseObj);
+      }
+  
+      if (otp !== OTPemail.otp) {
+        responseObj.message = "Invalid OTP";
+        responseObj.status = 400;
+        responseObj.error = true;
+        return res.json(responseObj);
+      }
+  
+      // The OTP is valid
+      responseObj.data = { email: OTPemail.email };
+      responseObj.message = "OTP verified successfully";
+      responseObj.status = 200;
+      responseObj.error = false;
+      res.json(responseObj);
+    });
+  });
+
+ 
+//   const appaccountSid = process.env.WHATSAPP_TWILIO_ACCOUNT_SID_TOKEN;
+//   const appauthToken = process.env.WHATSAPP_TWILIO_AUTH_TOKEN;
+//   const appverifySid = process.env.WHATSAPP_TWILIO_SID_TOKEN;
+//   const client = twilio(appaccountSid,appauthToken);
+  
+//   router.post('/api/verifyapp', async (req, res) => {
+//     let responseObj = { data: "", message: "", status: "", error: "" };
+//     const { phone } = req.body;
+//     console.log("line 169", req.body);  
+//     function generateOTP() {
+//       const digits = '0123456789';
+//       let OTP = '';
+//       for (let i = 0; i < 6; i++) {
+//         OTP += digits[Math.floor(Math.random() * 10)];
+//       }
+//       return OTP;
+//     }
+  
+//     Token.findOne({ phone }, (error, token) => {
+//       if (error) {
+//         responseObj.message = "Something went wrong";
+//         responseObj.status = 400;
+//         responseObj.error = true;
+//         res.json(responseObj);
+//       } else if (token) {
+//         responseObj.data = token;
+//         responseObj.status = 200;
+//         responseObj.error = false;
+//         res.json(responseObj);
+  
+//         // Generate the OTP code
+//         const otpCode = generateOTP();
+//         const accountSid = process.env.TWILIO_ACCOUNT_SID_TOKEN;
+//         const authToken = process.env.TWILIO_AUTH_TOKEN;
+//         const verifySid = process.env.TWILIO_SID_TOKEN;
+//         const client = require("twilio")(accountSid, authToken);
+//         client.messages
+//           .create({
+//             body: `Your OTP: ${otpCode}`,
+//             from:  `whatsapp:${process.env.YOUR_TWILIO_PHONE_NUMBER}`,
+//             to: `whatsapp:+91${phone}`,
+//           })
+//           .then((message) => {
+//             console.log('OTP sent via WhatsApp:', message.sid);
+//           })
+//           .catch((error) => {
+//             console.error('Error sending OTP via WhatsApp:', error);
+//           });
+//       } else {
+//         responseObj.message = "Invalid Number";
+//         responseObj.status = 200;
+//         responseObj.error = false;
+//         res.json(responseObj);
+//       }
+//     });
+//   });
+  
 
 
 
